@@ -1,0 +1,12 @@
+# Bỏ môi trường ảo
+.venv/
+venv/
+
+# Bỏ cache Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Bỏ model nếu không muốn push lên GitHub (nặng)
+segformer_b2_clothes/
+siglip_model/
