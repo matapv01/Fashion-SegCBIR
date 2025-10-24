@@ -5,1028 +5,407 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fashion AI Assistant</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --background-color: #343541;
+            --chat-background-color: #444654;
+            --text-color: #ececf1;
+            --border-color: rgba(255, 255, 255, 0.2);
+            --accent-color: #10a37f;
+            --accent-hover-color: #0d8a6a;
+            --icon-color: #acacbe;
+            --user-msg-bg: #40414f;
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body { height: 100%; overflow: hidden; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+            background-color: var(--background-color);
+            color: var(--text-color);
         }
 
-        .chatbot-container {
-            width: 100%;
-            max-width: 600px;
-            height: 700px;
-            background: #ffffff;
-            border-radius: 20px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
+        .chat-container {
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--background-color);
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            position: relative;
         }
 
-        .chatbot-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
+        .chat-header {
+            padding: 16px;
+            background-color: var(--background-color);
+            border-bottom: 1px solid var(--border-color);
             text-align: center;
-            border-radius: 20px 20px 0 0;
             position: relative;
+            flex-shrink: 0;
         }
-
+        .chat-header h1 { font-size: 1.2rem; }
+        
         .clear-chat-btn {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1.1em;
-            transition: background 0.3s ease;
+            position: absolute; top: 50%; right: 16px; transform: translateY(-50%);
+            background: none; border: 1px solid var(--border-color); color: var(--icon-color);
+            width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
+            font-size: 1.2rem; transition: background-color 0.2s;
         }
-
-        .clear-chat-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .chatbot-header h1 {
-            font-size: 1.5em;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .chatbot-header p {
-            opacity: 0.9;
-            font-size: 0.9em;
-        }
+        .clear-chat-btn:hover { background-color: var(--chat-background-color); }
 
         .chat-messages {
-            flex: 1;
-            padding: 20px;
+            flex-grow: 1;
             overflow-y: auto;
-            background: #fafbfc;
+            padding: 24px;
         }
+        .chat-messages::-webkit-scrollbar { width: 8px; }
+        .chat-messages::-webkit-scrollbar-track { background: var(--background-color); }
+        .chat-messages::-webkit-scrollbar-thumb { background-color: var(--chat-background-color); border-radius: 4px; }
 
+        /* --- CHANGE 2: User prompt on the right --- */
         .message {
-            margin-bottom: 20px;
-            animation: fadeInUp 0.3s ease;
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .message.user {
-            text-align: right;
-        }
-
-        .message.bot {
-            text-align: left;
-        }
-
-        .message-content {
-            display: inline-block;
-            max-width: 80%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            font-size: 0.95em;
-            line-height: 1.4;
-        }
-
-        .message.user .message-content {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .message.bot .message-content {
-            background: #e9ecef;
-            color: #333;
-        }
-
-        .message-image {
-            max-width: 300px;
-            border-radius: 12px;
-            margin: 10px 0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .message-image img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        .scanning-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            display: none;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .scan-line {
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, #00ff88, transparent);
-            position: absolute;
-            animation: scan 2s linear infinite;
-            box-shadow: 0 0 20px #00ff88;
-        }
-
-        @keyframes scan {
-            0% { top: 0; }
-            100% { top: 100%; }
-        }
-
-        .fashion-items {
-            margin-top: 15px;
-        }
-
-        .fashion-item {
             display: flex;
-            align-items: center;
-            background: white;
+            gap: 16px;
+            margin-bottom: 24px;
+            animation: fadeInUp 0.3s ease-out;
+            max-width: 90%;
+        }
+        .message.bot {
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .message.user {
+            flex-direction: row-reverse;
+            margin-left: auto;
+            margin-right: 0;
+        }
+        /* --- End of CHANGE 2 --- */
+
+        .message.user .message-content-wrapper {
+            background-color: var(--user-msg-bg);
             border-radius: 12px;
             padding: 12px;
-            margin: 8px 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s ease;
-            position: relative;
-            padding-right: 80px; /* Thêm khoảng trống cho các nút */
         }
-
-        .fashion-item:hover {
-            transform: translateX(5px);
+        
+        .message-avatar {
+            width: 32px; height: 32px; border-radius: 4px; display: flex;
+            align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;
         }
-
+        .message.user .message-avatar { background-color: #7b68ee; }
+        .message.bot .message-avatar { background-color: var(--accent-color); }
+        
+        .message-content-wrapper { flex: 1; }
+        .message-sender { font-weight: bold; margin-bottom: 8px; }
+        .message-content { line-height: 1.6; }
+        .message-image img { max-width: 250px; border-radius: 8px; margin-top: 8px; }
+        .fashion-items-grid, .query-results-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px; margin-top: 16px;
+        }
+        .result-item-card {
+            background-color: var(--chat-background-color); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 12px; display: flex; align-items: center;
+            gap: 12px; transition: background-color 0.2s;
+        }
+        .result-item-card:hover { background-color: #505264; }
         .item-image {
-            width: 60px;
-            height: 60px;
-            border-radius: 8px;
-            object-fit: contain;
-            margin-right: 12px;
-            background: #f8f9fa;
-            padding: 5px;
+            width: 70px; height: 70px; border-radius: 8px; object-fit: contain;
+            background-color: #343541; padding: 4px; cursor: pointer;
         }
+        .item-info { flex-grow: 1; }
+        .item-name { font-weight: 500; }
+        .item-type { font-size: 0.8rem; color: var(--icon-color); }
+        .item-actions { display: flex; gap: 8px; }
+        .icon-btn {
+            background: none; border: 1px solid var(--border-color); color: var(--icon-color);
+            width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
+            font-size: 1.2rem; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .icon-btn:hover { background-color: var(--background-color); color: var(--text-color); }
+        .icon-btn.liked { border-color: var(--accent-color); color: var(--accent-color); }
 
-        .like-btn {
-            background: none;
-            border: 2px solid transparent;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1.5em;
-            color: #ccc;
-            padding: 5px;
-            transition: all 0.2s ease;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: absolute;
-            right: 45px; /* Dịch sang trái */
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .reply-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.5em;
-            color: #aaa;
-            padding: 5px;
-            transition: color 0.2s ease;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: absolute;
-            right: 5px; /* Nút mới bên phải */
-            top: 50%;
-            transform: translateY(-50%);
-        }
-        .reply-btn:hover {
-            color: #667eea;
-        }
-
-        .like-btn.liked {
-            background: #ff6b6b;
-            color: white;
-            border-color: #ff6b6b;
-        }
-
-        .refine-container {
-            text-align: right;
-            margin-top: 10px;
-        }
-
+        .refine-container { margin-top: 16px; text-align: left; }
         .refine-search-btn {
-            background: linear-gradient(135deg, #ff9a9e, #fecfef);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            cursor: pointer;
-            display: none;
+            background-color: var(--accent-color); color: white; border: none;
+            padding: 10px 16px; border-radius: 8px; cursor: pointer;
+            display: none; font-weight: 500; transition: background-color 0.2s;
         }
+        .refine-search-btn:hover { background-color: var(--accent-hover-color); }
+        
+        .chat-input-area {
+            padding: 24px; border-top: 1px solid var(--border-color);
+            background-color: var(--background-color); flex-shrink: 0;
+            position: relative;
+        }
+        .input-form-wrapper { max-width: 800px; margin: 0 auto; position: relative;}
+        
+        .text-input {
+            width: 100%; background-color: var(--chat-background-color); color: var(--text-color);
+            border: 1px solid var(--border-color); border-radius: 12px;
+            padding: 14px 90px 14px 50px; font-size: 1rem; outline: none;
+            transition: border-color 0.2s; resize: none;
+        }
+        .text-input:focus { border-color: var(--accent-color); }
 
-        .refine-search-btn:hover {
-            background: linear-gradient(135deg, #ff7a7f, #fdbedf);
+        .file-input { display: none; }
+        .file-btn { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); }
+        .send-btn {
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            background-color: var(--accent-color); color: white;
         }
-
-        .chat-input {
-            padding: 20px;
-            background: white;
-            border-top: 1px solid #e9ecef;
-            position: relative; /* Để chứa phần preview */
-        }
+        .send-btn:disabled { background-color: #555; cursor: not-allowed; }
 
         .query-image-preview {
             position: absolute;
-            bottom: 100%; /* Hiển thị ngay trên khu vực input */
-            left: 20px;
-            background: #e9ecef;
-            padding: 5px;
-            border-radius: 8px 8px 0 0;
-            display: none; /* Ẩn mặc định */
-            align-items: center;
-            gap: 10px;
+            bottom: calc(100% + 8px);
+            left: 0;
+            background-color: var(--chat-background-color); border: 1px solid var(--border-color);
+            padding: 8px; border-radius: 8px; display: none; align-items: center; gap: 10px;
+            animation: fadeInUp 0.2s; max-width: 300px;
         }
+        .query-image-preview img { width: 40px; height: 40px; border-radius: 4px; }
 
-        .query-image-preview img {
-            width: 40px;
-            height: 40px;
-            border-radius: 4px;
-            object-fit: cover;
-        }
-
-        .query-image-preview span {
-            font-size: 0.85em;
-            color: #333;
-        }
-
-        .remove-preview-btn {
-            background: none;
-            border: none;
-            font-size: 1.2em;
-            cursor: pointer;
-            color: #888;
-        }
-
-        .input-container {
-            display: flex;
-            align-items: center;
-            background: #f8f9fa;
-            border-radius: 25px;
-            padding: 8px 16px;
-            gap: 12px;
-        }
-
-        .text-input {
-            flex: 1;
-            border: none;
-            background: none;
-            outline: none;
-            font-size: 0.95em;
-            padding: 8px 0;
-        }
-
-        .text-input::placeholder {
-            color: #6c757d;
-        }
-
-        .file-input {
-            display: none;
-        }
-
-        .file-btn, .send-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 50%;
-            transition: background 0.2s ease;
-            color: #6c757d;
-            font-size: 1.2em;
-        }
-
-        .file-btn:hover, .send-btn:hover {
-            background: #e9ecef;
-        }
-
-        .send-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .send-btn:hover {
-            background: linear-gradient(135deg, #5a6fd8 0%, #6a3f8a 100%);
-        }
-
-        .send-btn:disabled {
-            background: #6c757d;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        .file-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .typing-indicator {
-            display: none;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
-            background: #e9ecef;
-            border-radius: 18px;
-            display: inline-block;
-            margin-bottom: 20px;
-        }
-
-        .typing-dots {
-            display: flex;
-            gap: 4px;
-        }
-
-        .typing-dot {
-            width: 8px;
-            height: 8px;
-            background: #6c757d;
-            border-radius: 50%;
-            animation: typing 1.4s infinite;
-        }
-
-        .typing-dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .typing-dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes typing {
-            0%, 60%, 100% {
-                transform: translateY(0);
-            }
-            30% {
-                transform: translateY(-10px);
-            }
-        }
-
-        .welcome-message {
-            text-align: center;
-            color: #6c757d;
-            font-style: italic;
-            margin: 50px 0;
-        }
-
-        .status-indicator {
-            position: absolute;
-            top: 15px;
-            left: 20px;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #28a745;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
+        .typing-indicator span { animation: typing-blink 1s infinite; }
+        @keyframes typing-blink { 50% { opacity: 0.5; } }
 
         .image-popup {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); display: none; justify-content: center;
+            align-items: center; z-index: 1000;
         }
-
-        .image-popup img {
-            max-width: 80%;
-            max-height: 80%;
-            border-radius: 12px;
-        }
-
+        .image-popup img { max-width: 90%; max-height: 90%; border-radius: 12px; }
         .close-popup {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            font-size: 1.5em;
-            cursor: pointer;
+            position: absolute; top: 20px; right: 20px; background: white; border: none;
+            border-radius: 50%; width: 40px; height: 40px; font-size: 1.5em; cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <div class="chatbot-container">
-        <div class="chatbot-header">
-            <div class="status-indicator">
-                <div class="status-dot"></div>
-                <span>Online</span>
+    <div class="chat-container">
+        <header class="chat-header"><h1>Fashion AI Assistant</h1><button class="clear-chat-btn" onclick="clearChat()" title="Xóa đoạn chat">🗑️</button></header>
+        <main class="chat-messages" id="chat-messages"></main>
+        <footer class="chat-input-area">
+            <div class="input-form-wrapper">
+                <div class="query-image-preview" id="query-image-preview"><img id="preview-img" src=""><span>Hỏi về ảnh này...</span><button class="icon-btn" onclick="removeSelectedQueryImage()" title="Bỏ chọn ảnh">×</button></div>
+                <div class="input-form">
+                    <input type="file" class="file-input" id="file-input" accept="image/*">
+                    <button class="icon-btn file-btn" onclick="document.getElementById('file-input').click()" title="Đính kèm ảnh">📎</button>
+                    <input type="text" class="text-input" placeholder="Hỏi về thời trang hoặc gửi ảnh..." id="text-input">
+                    <button class="icon-btn send-btn" onclick="sendMessage()" id="send-btn" title="Gửi">➤</button>
+                </div>
             </div>
-            <h1>👗 Fashion AI Assistant</h1>
-            <p>Phân tích trang phục thông minh với AI</p>
-            <button class="clear-chat-btn" onclick="clearChat()" title="Xóa đoạn chat">
-                🗑️
-            </button>
-        </div>
-
-        <div class="chat-messages" id="chat-messages">
-            <div class="welcome-message">
-                <p>Xin chào! Tôi có thể giúp bạn phân tích trang phục trong ảnh.</p>
-                <p>Hãy gửi ảnh để bắt đầu nhé! 📸</p>
-            </div>
-        </div>
-
-        <div class="chat-input">
-            <div class="query-image-preview" id="query-image-preview">
-                <img id="preview-img" src="">
-                <span>Sử dụng ảnh này cho truy vấn...</span>
-                <button class="remove-preview-btn" onclick="removeSelectedQueryImage()" title="Bỏ chọn ảnh">×</button>
-            </div>
-            <div class="input-container">
-                <input type="text" class="text-input" placeholder="Nhập tin nhắn hoặc chọn ảnh..." id="text-input">
-                <input type="file" class="file-input" id="file-input" accept="image/*">
-                <button class="file-btn" onclick="document.getElementById('file-input').click()">
-                    📎
-                </button>
-                <button class="send-btn" onclick="sendMessage()" id="send-btn">
-                    ➤
-                </button>
-            </div>
-        </div>
-
-        <div class="image-popup" id="image-popup">
-            <button class="close-popup" onclick="closeImagePopup()">×</button>
-            <img id="popup-image" src="">
-        </div>
+        </footer>
     </div>
+    <div class="image-popup" id="image-popup"><button class="close-popup" onclick="closeImagePopup()">×</button><img id="popup-image" src=""></div>
 
     <script>
         let isProcessing = false;
         let baseText = null;
         let likedImages = [];
-        let selectedQueryImage = null; // Ảnh được chọn để truy vấn
+        let selectedQueryImage = null;
+        const chatMessages = document.getElementById('chat-messages');
 
-        document.getElementById('text-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
-        document.getElementById('file-input').addEventListener('change', function(e) {
+        document.getElementById('text-input').addEventListener('keypress', (e) => e.key === 'Enter' && sendMessage());
+        document.getElementById('file-input').addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 handleImageUpload(e.target.files[0]);
-                // Reset file input để có thể upload cùng file hoặc file khác
                 e.target.value = '';
             }
         });
 
         function sendMessage() {
+            if (isProcessing) return;
             const textInput = document.getElementById('text-input');
             const message = textInput.value.trim();
-            
-            if (!isProcessing) {
-                if (selectedQueryImage) {
-                    // Gửi truy vấn kết hợp ảnh và text
-                    const imgElement = `<img src="data:image/png;base64,${selectedQueryImage}" style="width: 30px; height: 30px; vertical-align: middle; margin-right: 5px;">`;
-                    if (message) {
-                        addMessage('user', `${imgElement} ${message}`);
-                        queryWithImageAndText(message, selectedQueryImage);
-                    } else {
-                        addMessage('user', imgElement);
-                         queryWithImageAndText("", selectedQueryImage); // Gửi ảnh không kèm text
-                    }
-                } else {
-                    // Gửi truy vấn text thông thường
-                    if (message) {
-                        baseText = message;
-                        addMessage('user', message);
-                        queryText(message);
-                    }
-                }
-                textInput.value = '';
+
+            if (selectedQueryImage) {
+                const imgElement = `<img src="data:image/png;base64,${selectedQueryImage}" style="width: 40px; height: 40px; vertical-align: middle; margin-right: 8px; border-radius: 4px;">`;
+                addMessage('user', `${imgElement} ${message || ''}`);
+                queryWithImageAndText(message, selectedQueryImage);
+            } else if (message) {
+                addMessage('user', message);
+                queryText(message);
             }
+            textInput.value = '';
         }
 
         function handleImageUpload(file) {
-            if (isProcessing) {
-                addMessage('bot', 'Tôi đang xử lý ảnh trước đó. Vui lòng đợi một chút! ⏳');
-                return;
-            }
-            
             const reader = new FileReader();
-            reader.onload = function(e) {
-                // Add user message with image
-                addImageMessage('user', e.target.result);
-                
-                // Process the image
+            reader.onload = (e) => {
+                addMessage('user', `<div class="message-image"><img src="${e.target.result}" alt="Uploaded image"></div>`);
                 analyzeImage(file);
             };
             reader.readAsDataURL(file);
         }
-
-        function addMessage(sender, content) {
-            const chatMessages = document.getElementById('chat-messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}`;
-            
-            messageDiv.innerHTML = `
-                <div class="message-content">${content}</div>
-            `;
-            
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function addImageMessage(sender, imageSrc) {
-            const chatMessages = document.getElementById('chat-messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}`;
-            
-            messageDiv.innerHTML = `
-                <div class="message-content">
-                    <div class="message-image" id="processing-image">
-                        <img src="${imageSrc}" alt="Uploaded image">
-                        <div class="scanning-overlay" id="scanning-overlay">
-                            <div class="scan-line"></div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function showTyping() {
-            const chatMessages = document.getElementById('chat-messages');
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'message bot';
-            typingDiv.id = 'typing-indicator';
-            
-            typingDiv.innerHTML = `
-                <div class="typing-indicator">
-                    <span>Đang phân tích</span>
-                    <div class="typing-dots">
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                    </div>
-                </div>
-            `;
-            
-            chatMessages.appendChild(typingDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function hideTyping() {
-            const typingIndicator = document.getElementById('typing-indicator');
-            if (typingIndicator) {
-                typingIndicator.remove();
+        
+        async function fetchAPI(endpoint, options) {
+            isProcessing = true;
+            toggleInput(false);
+            addTypingIndicator();
+            try {
+                const response = await fetch(endpoint, options);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ detail: response.statusText || 'Lỗi không xác định từ máy chủ.' }));
+                    throw new Error(errorData.detail);
+                }
+                return await response.json();
+            } catch (error) {
+                addMessage('bot', `❌ Đã xảy ra lỗi: ${error.message}`);
+                console.error(`Error fetching ${endpoint}:`, error);
+                return null;
+            } finally {
+                isProcessing = false;
+                toggleInput(true);
+                removeTypingIndicator();
             }
         }
 
         async function analyzeImage(file) {
-            if (isProcessing) {
-                addMessage('bot', 'Tôi đang xử lý ảnh trước đó. Vui lòng đợi! ⏳');
-                return;
-            }
-            
-            isProcessing = true;
-            console.log('🔄 Starting image analysis...');
-            
-            // Disable upload buttons during processing
-            document.getElementById('send-btn').disabled = true;
-            document.querySelector('.file-btn').disabled = true;
-            
-            // Show scanning effect
-            const scanningOverlay = document.getElementById('scanning-overlay');
-            if (scanningOverlay) {
-                scanningOverlay.style.display = 'flex';
-            }
-
-            // Show typing indicator
-            showTyping();
-
-            try {
-                const formData = new FormData();
-                formData.append('file', file);
-
-                console.log('📤 Sending request to /analyze...');
-                const response = await fetch('/analyze', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                console.log('📥 Response status:', response.status);
-                const result = await response.json();
-                console.log('📋 Result:', result);
-
-                // Hide scanning effect
-                if (scanningOverlay) {
-                    scanningOverlay.style.display = 'none';
-                }
-
-                // Hide typing
-                hideTyping();
-
-                if (result.success && result.fashion_items.length > 0) {
-                    addFashionResultMessage(result);
-                } else if (result.success && result.fashion_items.length === 0) {
-                    addMessage('bot', 'Tôi không tìm thấy trang phục nào trong ảnh này. Hãy thử với ảnh người mặc đồ rõ ràng hơn! 👗');
-                } else {
-                    addMessage('bot', 'Có lỗi trong quá trình phân tích. Vui lòng thử lại! �');
-                }
-
-            } catch (error) {
-                console.error('❌ Error analyzing image:', error);
-                
-                // Hide effects
-                if (scanningOverlay) {
-                    scanningOverlay.style.display = 'none';
-                }
-                hideTyping();
-                
-                addMessage('bot', 'Kết nối bị lỗi. Vui lòng kiểm tra server và thử lại! �');
-            } finally {
-                isProcessing = false;
-                console.log('✅ Analysis completed, ready for next image');
-                
-                // Re-enable upload buttons
-                document.getElementById('send-btn').disabled = false;
-                document.querySelector('.file-btn').disabled = false;
-            }
+            const formData = new FormData();
+            formData.append('file', file);
+            const result = await fetchAPI('/analyze', { method: 'POST', body: formData });
+            if (result && result.success) addFashionResultMessage(result);
         }
 
         async function queryText(text) {
-            if (isProcessing) {
-                addMessage('bot', 'Tôi đang xử lý truy vấn trước đó. Vui lòng đợi! ⏳');
-                return;
-            }
-            
-            isProcessing = true;
-            console.log('🔄 Starting text query...');
-            
-            // Disable send button during processing
-            document.getElementById('send-btn').disabled = true;
-            
-            // Show typing indicator
-            showTyping();
-            
-            try {
-                const response = await fetch('/query_text', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ text: text })
-                });
-                
-                const result = await response.json();
-                console.log('📋 Query result:', result);
-                
-                // Hide typing
-                hideTyping();
-                
-                if (result.success && result.results.length > 0) {
-                    baseText = result.base_text || text;
-                    addQueryResultMessage(result);
-                } else {
-                    addMessage('bot', 'Không tìm thấy kết quả phù hợp cho truy vấn này. Hãy thử mô tả khác! 🔍');
-                }
-                
-            } catch (error) {
-                console.error('❌ Error querying text:', error);
-                hideTyping();
-                addMessage('bot', 'Kết nối bị lỗi. Vui lòng kiểm tra server và thử lại! ⚠️');
-            } finally {
-                isProcessing = false;
-                console.log('✅ Query completed, ready for next');
-                
-                // Re-enable send button
-                document.getElementById('send-btn').disabled = false;
+            const result = await fetchAPI('/query_text', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            if (result && result.success) {
+                baseText = result.query || text;
+                addQueryResultMessage(result);
             }
         }
 
+        async function queryWithImageAndText(text, imageB64) {
+            const result = await fetchAPI('/query_image_text', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, image_b64: imageB64 })
+            });
+            if (result && result.success) {
+                baseText = result.query || text;
+                addQueryResultMessage(result);
+            }
+            removeSelectedQueryImage();
+        }
+        
+        async function refineSearch() {
+            const userFeedback = prompt("Mô tả thêm để tôi tinh chỉnh kết quả? (VD: 'có cổ bẻ', 'màu xanh navy'...). Bỏ trống nếu chỉ tìm theo ảnh đã thích.", "");
+            if (userFeedback === null) return;
+            const payload = { base_query: baseText, feedback_text: userFeedback.trim() || null, liked_images: likedImages };
+            const result = await fetchAPI('/query_refine', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (result && result.success) {
+                baseText = result.query || baseText;
+                addQueryResultMessage(result);
+            }
+        }
+
+        function addMessage(sender, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            const avatar = sender === 'user' ? '👤' : '🤖';
+            const senderName = sender === 'user' ? 'You' : 'Fashion AI';
+            
+            if(sender === 'user') {
+                 messageDiv.innerHTML = `
+                    <div class="message-content-wrapper"><div class="message-sender">${senderName}</div><div class="message-content">${content}</div></div>
+                    <div class="message-avatar">${avatar}</div>`;
+            } else {
+                 messageDiv.innerHTML = `
+                    <div class="message-avatar">${avatar}</div>
+                    <div class="message-content-wrapper"><div class="message-sender">${senderName}</div><div class="message-content">${content}</div></div>`;
+            }
+
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
         function addFashionResultMessage(result) {
-            const chatMessages = document.getElementById('chat-messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message bot';
-            
-            let itemsHtml = '';
-            result.fashion_items.forEach(item => {
-                itemsHtml += `
-                    <div class="fashion-item">
-                        <img src="data:image/png;base64,${item.item_png}" alt="${item.name_vi}" class="item-image">
-                        <div class="item-info">
-                            <div class="item-name">${item.name_vi}</div>
-                            <div class="item-type">${item.name}</div>
-                        </div>
-                        <button class="reply-btn" title="Sử dụng ảnh này để truy vấn" onclick='selectImageForQuery("${item.item_png}")'>↩️</button>
-                    </div>
-                `;
-            });
-            
-            messageDiv.innerHTML = `
-                <div class="message-content">
-                    <div>🎯 Tôi tìm thấy ${result.total_items} trang phục trong ảnh:</div>
-                    <div class="fashion-items">
-                        ${itemsHtml}
-                    </div>
-                </div>
-            `;
-            
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            if (result.fashion_items.length === 0) {
+                 addMessage('bot', 'Tôi không tìm thấy trang phục nào trong ảnh. Bạn có thể thử một ảnh khác rõ ràng hơn.');
+                 return;
+            }
+            let itemsHtml = result.fashion_items.map(item => `
+                <div class="result-item-card">
+                    <img src="data:image/png;base64,${item.item_png}" class="item-image" onclick="viewImagePopup(this.src)">
+                    <div class="item-info"><div class="item-name">${item.name_vi}</div><div class="item-type">${item.name}</div></div>
+                    <div class="item-actions"><button class="icon-btn" title="Dùng ảnh này để tìm kiếm" onclick='selectImageForQuery("${item.item_png}")'>↩️</button></div>
+                </div>`).join('');
+            addMessage('bot', `🎯 Tôi đã phân tích và tìm thấy ${result.total_items} món đồ:<div class="fashion-items-grid">${itemsHtml}</div>`);
         }
 
-        async function addQueryResultMessage(result) {
-            const chatMessages = document.getElementById('chat-messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message bot';
-
-            likedImages = [];
-            baseText = result.base_text || baseText;
-
-            let itemsHtml = '';
-            result.results.forEach(item => {
-                itemsHtml += `
-                    <div class="fashion-item">
-                        <img src="data:image/png;base64,${item.image_b64}" alt="Result image" class="item-image" onclick="viewImagePopup(this.src)">
-                        <button class="like-btn" data-image-b64="${item.image_b64}" onclick="toggleLike(event)">❤️</button>
-                        <button class="reply-btn" title="Sử dụng ảnh này để truy vấn" onclick='selectImageForQuery("${item.image_b64}")'>↩️</button>
-                    </div>
-                `;
-            });
-
-            // Tìm và xóa nút "Tìm kiếm lại" cũ nếu có
-            const oldRefineBtn = document.getElementById('refine-btn');
-            if (oldRefineBtn) {
-                oldRefineBtn.parentElement.remove();
+        function addQueryResultMessage(result) {
+            // CHANGE 1: Fix refine button duplication
+            const oldRefineContainer = document.querySelector('.refine-container');
+            if (oldRefineContainer) {
+                oldRefineContainer.remove();
             }
-
-            messageDiv.innerHTML = `
-                <div class="message-content">
-                    <div>🔍 Kết quả truy vấn:</div>
-                    <div class="fashion-items">
-                        ${itemsHtml}
-                    </div>
-                    <div class="refine-container">
-                        <button class="refine-search-btn" id="refine-btn" onclick="refineSearch()">Tìm kiếm lại</button>
-                    </div>
-                </div>
-            `;
+            // End of CHANGE 1
             
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            likedImages = [];
+            let itemsHtml = result.results.map(item => `
+                <div class="result-item-card">
+                    <img src="data:image/png;base64,${item.image_b64}" class="item-image" onclick="viewImagePopup(this.src)">
+                    <div class="item-info"><div class="item-name">Gợi ý sản phẩm</div><div class="item-type">${item.label}</div></div>
+                    <div class="item-actions">
+                        <button class="icon-btn like-btn" title="Thích" data-image-b64="${item.image_b64}" onclick="toggleLike(event)">🤍</button>
+                        <button class="icon-btn" title="Dùng ảnh này để tìm kiếm" onclick='selectImageForQuery("${item.image_b64}")'>↩️</button>
+                    </div>
+                </div>`).join('');
+            
+            const refineButtonHtml = `<div class="refine-container"><button class="refine-search-btn" id="refine-btn" onclick="refineSearch()">Tinh chỉnh tìm kiếm</button></div>`;
+            addMessage('bot', `🔍 Đây là kết quả cho "${result.query}":<div class="query-results-grid">${itemsHtml}</div>${refineButtonHtml}`);
             updateRefineBtn();
         }
 
         function toggleLike(event) {
             const btn = event.currentTarget;
-            const imageB64 = btn.dataset.imageB64;
-            if (likedImages.includes(imageB64)) {
-                likedImages = likedImages.filter(b64 => b64 !== imageB64);
-                btn.classList.remove('liked');
+            if (btn.classList.contains('liked')) {
+                likedImages = likedImages.filter(b64 => b64 !== btn.dataset.imageB64);
+                btn.classList.remove('liked'); btn.innerHTML = '🤍';
             } else {
-                likedImages.push(imageB64);
-                btn.classList.add('liked');
+                likedImages.push(btn.dataset.imageB64);
+                btn.classList.add('liked'); btn.innerHTML = '❤️';
             }
-            console.log('[Refine] Current liked images:', likedImages.length);
             updateRefineBtn();
         }
 
         function updateRefineBtn() {
             const refineBtn = document.getElementById('refine-btn');
-            if (refineBtn) {
-                refineBtn.style.display = likedImages.length > 0 ? 'inline-block' : 'none';
-            }
-            document.querySelectorAll('.like-btn').forEach(btn => {
-                const imageB64 = btn.dataset.imageB64;
-                if (likedImages.includes(imageB64)) {
-                    btn.classList.add('liked');
-                } else {
-                    btn.classList.remove('liked');
-                }
-            });
+            if (refineBtn) refineBtn.style.display = likedImages.length > 0 ? 'inline-block' : 'none';
         }
-
-        // PHIÊN BẢN NÂNG CẤP, XỬ LÝ CẢ TEXT VÀ ẢNH
-
-        async function refineSearch() {
-            if (isProcessing) {
-                addMessage('bot', 'Đang xử lý...');
-                return;
-            }
-
-            const userFeedback = prompt(
-                "Bạn có muốn mô tả thêm gì không? (ví dụ: 'cho tôi xem loại tay dài', 'có màu xanh không',...). Bỏ trống nếu chỉ muốn tìm theo ảnh đã thích.",
-                ""
-            );
-
-            if (userFeedback === null) return; // người dùng bấm Cancel
-
-            isProcessing = true;
-            showTyping();
-            const refineUrl = `${window.location.origin}/query_refine`;
-
-            const payload = {
-                base_query: baseText.trim(),
-                feedback_text: userFeedback ? userFeedback.trim() : null,
-                liked_images: likedImages
-            };
-
-            console.log('[Refine] Sending payload to:', refineUrl);
-            console.log('[Refine] Payload:', payload);
-
-            try {
-                const response = await fetch(refineUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                console.log('[Refine] Response status:', response.status);
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('[Refine] Backend returned error:', errorText);
-
-                    let errorMessage = 'Lỗi không xác định.';
-                    try {
-                        const errJson = JSON.parse(errorText);
-                        errorMessage = errJson.detail || errorMessage;
-                    } catch {
-                        errorMessage = errorText || errorMessage;
-                    }
-
-                    hideTyping(); // 🔥 BẮT BUỘC
-                    addMessage('bot', `❌ ${errorMessage}`);
-                    return;
-                }
-
-                const result = await response.json();
-                console.log('[Refine] Result payload:', result);
-
-                hideTyping();
-
-                if (result.success && result.results.length > 0) {
-                    baseText = result.query || baseText;
-                    addQueryResultMessage(result);
-                } else {
-                    addMessage('bot', 'Không tìm thấy kết quả tinh chỉnh!');
-                }
-
-            } catch (error) {
-                console.error('[Refine] Fetch error:', error);
-                hideTyping();
-                addMessage('bot', 'Lỗi kết nối khi tinh chỉnh!');
-            } finally {
-                isProcessing = false;
-            }
+        
+        function addTypingIndicator() {
+            if (document.getElementById('typing-indicator')) return;
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typing-indicator';
+            typingDiv.className = 'message bot';
+            typingDiv.innerHTML = `<div class="message-avatar">🤖</div><div class="message-content-wrapper"><div class="message-sender">Fashion AI</div><div class="message-content typing-indicator"><span>Đang xử lý...</span></div></div>`;
+            chatMessages.appendChild(typingDiv);
+            scrollToBottom();
         }
-
-
-        function findSimilar(itemName) {
-            addMessage('bot', `Tính năng tìm kiếm trang phục tương tự cho "${itemName}" sẽ được phát triển sớm! 🔍✨`);
+        function removeTypingIndicator() { document.getElementById('typing-indicator')?.remove(); }
+        function toggleInput(enabled) {
+            document.getElementById('text-input').disabled = !enabled;
+            document.getElementById('send-btn').disabled = !enabled;
+            document.querySelector('.file-btn').disabled = !enabled;
         }
-
-        function clearChat() {
-            const chatMessages = document.getElementById('chat-messages');
-            chatMessages.innerHTML = `
-                <div class="welcome-message">
-                    <p>Xin chào! Tôi có thể giúp bạn phân tích trang phục trong ảnh.</p>
-                    <p>Hãy gửi ảnh để bắt đầu nhé! 📸</p>
-                </div>
-            `;
-            
-            // Reset processing state
-            isProcessing = false;
-            
-            // Reset file input
-            document.getElementById('file-input').value = '';
-            
-            // Clear text input
-            document.getElementById('text-input').value = '';
-            
-            // Show success message briefly
-            const clearBtn = document.querySelector('.clear-chat-btn');
-            const originalText = clearBtn.innerHTML;
-            clearBtn.innerHTML = '✅';
-            setTimeout(() => {
-                clearBtn.innerHTML = originalText;
-            }, 1000);
-        }
-
-        function viewImagePopup(src) {
-            const popup = document.getElementById('image-popup');
-            const popupImg = document.getElementById('popup-image');
-            popupImg.src = src;
-            popup.style.display = 'flex';
-        }
-
-        function closeImagePopup() {
-            document.getElementById('image-popup').style.display = 'none';
-        }
-
+        function scrollToBottom() { chatMessages.scrollTop = chatMessages.scrollHeight; }
+        function clearChat() { chatMessages.innerHTML = ''; isProcessing = false; baseText = null; likedImages = []; selectedQueryImage = null; removeSelectedQueryImage(); toggleInput(true); }
+        function viewImagePopup(src) { document.getElementById('popup-image').src = src; document.getElementById('image-popup').style.display = 'flex'; }
+        function closeImagePopup() { document.getElementById('image-popup').style.display = 'none'; }
         function selectImageForQuery(imageB64) {
             selectedQueryImage = imageB64;
-            const preview = document.getElementById('query-image-preview');
             document.getElementById('preview-img').src = `data:image/png;base64,${imageB64}`;
-            preview.style.display = 'flex';
+            document.getElementById('query-image-preview').style.display = 'flex';
             document.getElementById('text-input').focus();
         }
-
-        function removeSelectedQueryImage() {
-            selectedQueryImage = null;
-            document.getElementById('query-image-preview').style.display = 'none';
-        }
-
-        async function queryWithImageAndText(text, imageB64) {
-            if (isProcessing) return;
-            isProcessing = true;
-            showTyping();
-
-            try {
-                const response = await fetch('/query_image_text', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text, image_b64: imageB64 })
-                });
-
-                if (!response.ok) throw new Error(`Server error: ${response.status}`);
-                
-                const result = await response.json();
-                hideTyping();
-
-                if (result.success && result.results.length > 0) {
-                    addQueryResultMessage(result);
-                } else {
-                    addMessage('bot', 'Không tìm thấy kết quả phù hợp.');
-                }
-            } catch (error) {
-                console.error('Error in image-text query:', error);
-                hideTyping();
-                addMessage('bot', 'Lỗi khi truy vấn kết hợp ảnh và văn bản.');
-            } finally {
-                isProcessing = false;
-                removeSelectedQueryImage(); // Xóa ảnh đã chọn sau khi gửi
-            }
-        }
+        function removeSelectedQueryImage() { selectedQueryImage = null; document.getElementById('query-image-preview').style.display = 'none'; }
     </script>
 </body>
 </html>

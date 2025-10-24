@@ -45,8 +45,7 @@ async def log_requests(request, call_next):
     print(f"[HTTP] Hoàn thành request: {request.method} {request.url.path} -> {response.status_code}")
     return response
 
-os.makedirs("static", exist_ok=True)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/home", StaticFiles(directory="src/static"), name="static")
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -393,6 +392,8 @@ async def query_image_text(request: ImageTextQueryRequest):
     try:
         text = request.text.strip() if request.text else ""
         image_b64 = request.image_b64
+        # Mã hóa text query (dù có hay không có ảnh)
+        text_emb = siglip_model.text_encoder(text)
 
         if not image_b64:
             raise HTTPException(status_code=400, detail="Cần có ảnh cho truy vấn này.")
@@ -404,9 +405,13 @@ async def query_image_text(request: ImageTextQueryRequest):
         if img_emb is None:
             raise HTTPException(status_code=400, detail="Ảnh không hợp lệ.")
         
-        # Chuẩn hóa vector ảnh
-        img_emb /= np.linalg.norm(img_emb)
-        query_emb = img_emb # Gán vector đã chuẩn hóa cho query_emb
+        # Tạo query embedding mới bằng thuật toán Rocchio
+        # Trọng số: 70% từ query gốc, 30% từ ảnh đã thích
+        alpha = 0.7
+        beta = 0.3
+        query_emb = alpha * text_emb + beta * img_emb
+        query_emb /= np.linalg.norm(query_emb) # Chuẩn hóa lại vector
+
 
         # 1. Retrieval (lấy 50 ứng viên)
         candidate_count = 50
@@ -455,8 +460,6 @@ async def query_image_text(request: ImageTextQueryRequest):
             except Exception as img_error:
                 print(f"Error loading image {img_path}: {img_error}")
 
-        if not results:
-            raise HTTPException(status_code=500, detail="Không tìm thấy ảnh hợp lệ trong kết quả.")
 
         return {
             "success": True,
@@ -529,7 +532,7 @@ async def query_refine_advanced(request: RefineRequest):
                     liked_embs.append(emb)
             
             if not liked_embs:
-                raise HTTPException(status_code=400, detail="Không có ảnh hợp lệ nào trong danh sách đã thích.")
+                raise HTTPException(status_code=404, detail="Không có ảnh hợp lệ nào trong danh sách đã thích.")
 
             avg_liked_emb = np.mean(np.array(liked_embs), axis=0)
 
@@ -589,8 +592,6 @@ async def query_refine_advanced(request: RefineRequest):
             except Exception as img_error:
                 print(f"[Refine] Error loading image {img_path}: {img_error}")
 
-        if not results:
-            raise HTTPException(status_code=500, detail="No valid images found for the refined query.")
 
         print(f"[Refine] Completed with {len(results)} results.")
         
