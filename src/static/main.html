@@ -873,27 +873,22 @@
                 return;
             }
 
-            // Hỏi người dùng có muốn nhập thêm mô tả không
-            const userFeedback = prompt("Bạn có muốn mô tả thêm gì không? (ví dụ: 'cho tôi xem loại tay dài', 'có màu xanh không',...). Bỏ trống nếu chỉ muốn tìm theo ảnh đã thích.", "");
+            const userFeedback = prompt(
+                "Bạn có muốn mô tả thêm gì không? (ví dụ: 'cho tôi xem loại tay dài', 'có màu xanh không',...). Bỏ trống nếu chỉ muốn tìm theo ảnh đã thích.",
+                ""
+            );
+
+            if (userFeedback === null) return; // người dùng bấm Cancel
 
             isProcessing = true;
             showTyping();
             const refineUrl = `${window.location.origin}/query_refine`;
 
-            // Xây dựng payload linh hoạt
             const payload = {
                 base_query: baseText.trim(),
-                // Nếu người dùng nhập text, gán vào feedback_text, nếu không thì là null
                 feedback_text: userFeedback ? userFeedback.trim() : null,
                 liked_images: likedImages
             };
-            
-            // Nếu người dùng nhấn Cancel, dừng lại
-            if (userFeedback === null) {
-                isProcessing = false;
-                hideTyping();
-                return;
-            }
 
             console.log('[Refine] Sending payload to:', refineUrl);
             console.log('[Refine] Payload:', payload);
@@ -905,10 +900,22 @@
                     body: JSON.stringify(payload)
                 });
 
-                // ... (phần xử lý response giữ nguyên như Cấp độ 1) ...
                 console.log('[Refine] Response status:', response.status);
+
                 if (!response.ok) {
-                    // ...
+                    const errorText = await response.text();
+                    console.error('[Refine] Backend returned error:', errorText);
+
+                    let errorMessage = 'Lỗi không xác định.';
+                    try {
+                        const errJson = JSON.parse(errorText);
+                        errorMessage = errJson.detail || errorMessage;
+                    } catch {
+                        errorMessage = errorText || errorMessage;
+                    }
+
+                    hideTyping(); // 🔥 BẮT BUỘC
+                    addMessage('bot', `❌ ${errorMessage}`);
                     return;
                 }
 
@@ -916,6 +923,7 @@
                 console.log('[Refine] Result payload:', result);
 
                 hideTyping();
+
                 if (result.success && result.results.length > 0) {
                     baseText = result.query || baseText;
                     addQueryResultMessage(result);
@@ -931,6 +939,7 @@
                 isProcessing = false;
             }
         }
+
 
         function findSimilar(itemName) {
             addMessage('bot', `Tính năng tìm kiếm trang phục tương tự cho "${itemName}" sẽ được phát triển sớm! 🔍✨`);

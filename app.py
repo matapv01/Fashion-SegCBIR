@@ -57,6 +57,10 @@ reranking_model = None
 llm = None
 
 
+topk = 5
+threshold = -1.5  # <-- tuỳ chỉnh, ví dụ 0.25 cho cosine similarity hoặc rerank score
+
+
 all_vectors = None
 all_files = None
 all_labels = None
@@ -150,9 +154,9 @@ async def load_model():
     # Load LLM model
     print("Loading LLM model...")
     llm = open_ai_model(api_key=os.getenv("OPENAI_API_KEY"), model=os.getenv("OPENAI_API_MODEL", "gpt-4o-mini"), base_url=os.getenv("OPENAI_API_BASE_URL", "https://api.openai.com/v1"))
-    print("Quick test LLM...")
-    test_response = llm.chat(messages=[{"role": "user", "content": "Hello, are you ready?"}])
-    print(f"LLM test response: {test_response}")
+    # print("Quick test LLM...")
+    # test_response = llm.chat(messages=[{"role": "user", "content": "Hello, are you ready?"}])
+    # print(f"LLM test response: {test_response}")
     print("LLM model ready.")
 
     # Load vector dataset
@@ -331,9 +335,15 @@ async def query_text(request: QueryRequest):
         # Sắp xếp theo score mới, từ cao đến thấp
         reranked_candidates.sort(key=lambda x: x[0], reverse=True)
         
-        # Lấy top 5 kết quả cuối cùng
-        topk = 5
-        final_indices = [idx for score, idx in reranked_candidates[:topk]]
+        print(f"min score: {reranked_candidates[-1][0]}, max score: {reranked_candidates[0][0]}")
+        # Lấy top k kết quả nhưng có ngưỡng điểm tối thiểu
+        # Lọc kết quả trên ngưỡng
+        filtered_candidates = [(score, idx) for score, idx in reranked_candidates if score >= threshold]
+        if not filtered_candidates:
+            raise HTTPException(status_code=404, detail="Không có ảnh nào liên quan (dưới ngưỡng điểm).")
+        # Giữ tối đa top k kết quả
+        final_indices = [idx for score, idx in filtered_candidates[:topk]]
+
         
         # =================================================================
         # CHUẨN BỊ KẾT QUẢ TRẢ VỀ
@@ -368,11 +378,15 @@ async def query_text(request: QueryRequest):
             "total_results": len(results)
         }
         
+    except HTTPException:
+        raise  # Giữ nguyên lỗi gốc (404, 400, v.v.)
+
     except Exception as e:
         import traceback
         print(f"Error querying text: {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/query_image_text")
 async def query_image_text(request: ImageTextQueryRequest):
@@ -398,13 +412,15 @@ async def query_image_text(request: ImageTextQueryRequest):
         candidate_count = 50
         sims = all_vectors @ query_emb
         # Bỏ qua kết quả đầu tiên nếu đó là tìm kiếm ảnh-chính-nó
-        candidate_indices = sims.argsort()[-(candidate_count+1):][::-1]
+        candidate_indices = sims.argsort()[-(candidate_count+1):][::-1] # ✅ giảm dần
         candidate_indices = candidate_indices[1:] # Bỏ qua top 1
 
         results = []
         # Nếu không có text, không cần re-rank, trả về kết quả retrieval
         if not text:
-            final_indices = candidate_indices[:5]
+            reranked_candidates = [(sims[idx], idx) for idx in candidate_indices]
+            reranked_candidates.sort(key=lambda x: x[0], reverse=True)  # ✅ giảm dần theo similarity
+
         else:
             # 2. Re-ranking (dùng text để re-rank)
             query = text
@@ -412,7 +428,15 @@ async def query_image_text(request: ImageTextQueryRequest):
             print(f"Re-ranking {len(candidates)} candidates for image-text query...")
             rerank_scores = reranking_model.predict(query, candidates)
             reranked_candidates = sorted(zip(rerank_scores, candidate_indices), key=lambda x: x[0], reverse=True)
-            final_indices = [idx for score, idx in reranked_candidates[:5]]
+
+        # Lấy top k kết quả nhưng có ngưỡng điểm tối thiểu
+        # Lọc kết quả trên ngưỡng
+        filtered_candidates = [(score, idx) for score, idx in reranked_candidates if score >= threshold]
+        if not filtered_candidates:
+            raise HTTPException(status_code=404, detail="Không có ảnh nào liên quan (dưới ngưỡng điểm).")
+        # Giữ tối đa top k kết quả
+        final_indices = [idx for score, idx in filtered_candidates[:topk]]
+
 
         # Chuẩn bị kết quả
         results = []
@@ -442,8 +466,13 @@ async def query_image_text(request: ImageTextQueryRequest):
             "total_results": len(results)
         }
 
+    except HTTPException:
+        raise  # Giữ nguyên lỗi gốc (404, 400, v.v.)
+
     except Exception as e:
-        print(f"Error in image-text query: {str(e)}")
+        import traceback
+        print(f"Error querying text: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -472,11 +501,13 @@ async def query_refine_advanced(request: RefineRequest):
         if feedback_text and feedback_text.strip():
             print(f"[Refine] Handling text-based feedback. Base: '{base_query}', Feedback: '{feedback_text}'")
             
-            prompt = f"""Người dùng đang tìm kiếm sản phẩm thời trang.
-            - Truy vấn ban đầu của họ là: "{base_query}"
-            - Sau khi xem kết quả, họ đưa ra phản hồi: "{feedback_text}"
-            Dựa vào thông tin trên, hãy tạo ra một câu truy vấn tìm kiếm mới, đầy đủ và súc tích hơn, kết hợp cả yêu cầu cũ và mới. Chỉ trả về duy nhất câu truy vấn.
-            Câu truy vấn mới:"""
+            prompt = f"""The user is searching for fashion products.
+            - Their initial query was: "{base_query}"
+            - After viewing the results, they provided the following feedback: "{feedback_text}"
+            Based on the information above, generate a new search query that is more complete and concise, combining both the original request and the feedback.
+            Only return the new query in English.
+            New query:"""
+
 
             rewritten_query = llm.chat(messages=[{"role": "user", "content": prompt}])
             final_query_text = rewritten_query.strip()
@@ -532,10 +563,15 @@ async def query_refine_advanced(request: RefineRequest):
 
         reranked_candidates = sorted(zip(rerank_scores, candidate_indices), key=lambda x: x[0], reverse=True)
         
-        topk = 5
-        final_indices = [idx for score, idx in reranked_candidates[:topk]]
+        # Lấy top k kết quả nhưng có ngưỡng điểm tối thiểu
+        # Lọc kết quả trên ngưỡng
+        filtered_candidates = [(score, idx) for score, idx in reranked_candidates if score >= threshold]
+        if not filtered_candidates:
+            raise HTTPException(status_code=404, detail="Không có ảnh nào liên quan (dưới ngưỡng điểm).")
+        # Giữ tối đa top k kết quả
+        final_indices = [idx for score, idx in filtered_candidates[:topk]]
+
         
-        # ... (Phần chuẩn bị kết quả giữ nguyên, không cần thay đổi) ...
         results = []
         for idx in final_indices:
             img_relative_path = all_files[idx]
@@ -554,7 +590,7 @@ async def query_refine_advanced(request: RefineRequest):
                 print(f"[Refine] Error loading image {img_path}: {img_error}")
 
         if not results:
-            raise HTTPException(status_code=404, detail="No valid images found for the refined query.")
+            raise HTTPException(status_code=500, detail="No valid images found for the refined query.")
 
         print(f"[Refine] Completed with {len(results)} results.")
         
@@ -570,6 +606,7 @@ async def query_refine_advanced(request: RefineRequest):
 
     except HTTPException:
         raise
+
     except Exception as e:
         import traceback
         print(f"[Refine] Unexpected error: {str(e)}")
