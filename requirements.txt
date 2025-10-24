@@ -11,7 +11,10 @@ Pillow
 numpy
 matplotlib
 open_clip_torch
+sentence_transformers
 
+openai
+dotenv
 
 # FastAPI và web server
 fastapi
