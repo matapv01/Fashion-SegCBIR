@@ -12,4 +12,4 @@ segformer_b2_clothes/
 siglip_model/
 
 # bỏ vector_db
-vector_database/
+vector_database/df_with_vectors.pkl
