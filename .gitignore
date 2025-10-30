@@ -10,3 +10,6 @@ __pycache__/
 # Bỏ model nếu không muốn push lên GitHub (nặng)
 segformer_b2_clothes/
 siglip_model/
+
+# bỏ vector_db
+vector_database/

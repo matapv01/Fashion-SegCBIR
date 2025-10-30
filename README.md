@@ -19,61 +19,22 @@ Fashion-SegCBIR is an advanced Content-Based Image Retrieval (CBIR) system tailo
     ```
 2. **Install dependencies:**
     ```bash
-    pip install -r requirements.txt
+    uv sync
     ```
-3. **Download pretrained models:**  
-   Place segmentation and feature extraction models in the `models/` directory. Refer to the documentation for download links.
+3. **Download vector database from:**: https://drive.google.com/file/d/1Ff32PYdxlN_OUCtCfLb13xljeDm-cL5e/view?usp=sharing
+   - put it into folder vector_database
 
 ## Usage
 
-1. **Prepare your dataset:**  
-   Place fashion images in the `data/` folder. Supported formats: JPG, PNG.
-2. **Run segmentation and feature extraction:**  
-    ```bash
-    python segment_and_extract.py
-    ```
-   This script processes images, segments fashion items, and extracts features. Outputs are saved in `data/features/`.
 3. **Start the retrieval system:**  
     ```bash
-    python app.py
+    uv run python app.py
     ```
    The FastAPI server will launch the web interface.
 4. **Access the interface:**  
-   Open your browser and go to [http://localhost:5000](http://localhost:5000).
+   Open your browser and go to [http://localhost:8000](http://localhost:8000).
 5. **Query images:**  
    Upload a fashion image to retrieve visually similar items from your dataset.
-
-## Project Structure
-
-```
-Fashion-SegCBIR/
-├── data/                # Fashion image dataset and extracted features
-├── models/              # Pretrained segmentation and feature models
-├── segment_and_extract.py # Segmentation and feature extraction script
-├── app.py               # Main FastAPI application
-├── requirements.txt     # Python dependencies
-├── static/              # UI assets (CSS, JS, images)
-├── templates/           # HTML templates for web interface
-└── README.md
-```
-
-## Requirements
-
-- Python 3.8+
-- PyTorch or TensorFlow (for deep learning models)
-- OpenCV (image processing)
-- FastAPI (web server)
-- NumPy, scikit-learn (feature processing)
-- Jinja2 (templating for UI)
-
-## Customization
-
-- **Model Selection:**  
-  You can swap segmentation or feature extraction models by updating the `models/` directory and modifying `segment_and_extract.py`.
-- **Dataset Expansion:**  
-  Add more images to `data/` and rerun the extraction script to update features.
-- **UI Modification:**  
-  Edit files in `templates/` and `static/` to customize the web interface.
 
 
 ## License
