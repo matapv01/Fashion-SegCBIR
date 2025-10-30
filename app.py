@@ -16,10 +16,11 @@ import os
 from typing import List, Optional
 
 from pydantic import BaseModel
-from src.model.huggingface_hub_model import huggingface_hub_model
-from src.model.open_clip_model import open_clip_model
-from src.model.cross_encoder_model import cross_encoder_model
-from src.model.open_ai_model import open_ai_model
+from src.utils.load_metadata import load_metadata
+from src.utils.load_models import load_models
+from src.utils.load_image import load_image_from_path_or_url
+
+
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -122,6 +123,10 @@ class RefineRequest(BaseModel):
     feedback_text: Optional[str] = None # Cho phép giá trị là chuỗi hoặc None (null)
     liked_images: List[str] = []     # Định nghĩa rõ ràng là một List (mảng) các chuỗi
 
+
+
+
+
 @app.on_event("startup")
 async def load_model():
     global segment_model
@@ -132,49 +137,15 @@ async def load_model():
     global all_vectors, all_files, all_labels
     global data_root
 
-    # Load segmentation model
-    print(f"Loading segmentation model...")
-    segment_model = huggingface_hub_model(repo_id="mattmdjaga/segformer_b2_clothes", local_dir="./segformer_b2_clothes")
-    print(f"Segment model ready on {device}")
-
-    # Load SigLIP model
-    print("Loading SigLIP model...")
-    siglip_model = open_clip_model(repo_id="Marqo/marqo-fashionSigLIP", local_dir="./siglip_model", device=device)
-    print(f"✅ CLIP model ready on {device}")
-
-    # Load Reranking model
-    print("Loading Reranking model...")
-    reranking_model = cross_encoder_model('cross-encoder/ms-marco-MiniLM-L-6-v2')
-    # check a quick prediction
-    test_scores = reranking_model.predict("test query", ["candidate 1", "candidate 2"])
-    print(f"Quick test reranking scores: {test_scores}")
-    print("Reranking model loaded.")
-
-    # Load LLM model
-    print("Loading LLM model...")
-    llm = open_ai_model(api_key=os.getenv("OPENAI_API_KEY"), model=os.getenv("OPENAI_API_MODEL", "gpt-4o-mini"), base_url=os.getenv("OPENAI_API_BASE_URL", "https://api.openai.com/v1"))
-    # print("Quick test LLM...")
-    # test_response = llm.chat(messages=[{"role": "user", "content": "Hello, are you ready?"}])
-    # print(f"LLM test response: {test_response}")
-    print("LLM model ready.")
-
+    print("🚀 Starting up and loading models...")
+    segment_model, siglip_model, reranking_model, llm = load_models(
+        segment_model, siglip_model, reranking_model, llm, device
+    )
+   
     # Load vector dataset
     print("📂 Loading vector dataset...")
-    output_root = "vector_database"
-    all_vectors_list, all_files_list, all_labels_list = [], [], []
-    for npz_file in os.listdir(output_root):
-        if npz_file.endswith(".npz"):
-            data = np.load(os.path.join(output_root, npz_file), allow_pickle=True)
-            all_vectors_list.append(data["vectors"])
-            # Lưu trữ toàn bộ đường dẫn tương đối (bao gồm cả label/thư mục)
-            all_files_list.extend([os.path.join(data["label"].item(), f) for f in data["filenames"]])
-            all_labels_list.extend([data["label"].item()] * len(data["filenames"]))
-    all_vectors = np.vstack(all_vectors_list)
-    all_vectors = all_vectors / np.linalg.norm(all_vectors, axis=1, keepdims=True)
-    all_vectors = all_vectors.astype(np.float32)  # Ensure float32
-    all_files = all_files_list
-    all_labels = all_labels_list
-    print(f"✅ Loaded {len(all_files)} images from dataset")
+    _, all_vectors, all_files, all_labels = load_metadata()
+
 
 def extract_fashion_items(image_array, segment_map):
     """Extract individual fashion items as PNG images"""
@@ -275,7 +246,6 @@ async def analyze_fashion(file: UploadFile = File(...)):
 
 
 
-# Thay thế endpoint /query_text cũ của bạn bằng cái này
 
 @app.post("/query_text")
 async def query_text(request: QueryRequest):
@@ -349,10 +319,8 @@ async def query_text(request: QueryRequest):
         # =================================================================
         results = []
         for idx in final_indices:
-            img_relative_path = all_files[idx]
-            img_path = os.path.join(data_root, img_relative_path) 
             try:
-                with Image.open(img_path).convert("RGB") as img:
+                with load_image_from_path_or_url(all_files[idx]) as img:
                     buffer = io.BytesIO()
                     img.save(buffer, format='PNG')
                     img_b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
@@ -446,9 +414,8 @@ async def query_image_text(request: ImageTextQueryRequest):
         # Chuẩn bị kết quả
         results = []
         for idx in final_indices:
-            img_path = os.path.join(data_root, all_files[idx])
             try:
-                img = Image.open(img_path).convert("RGB")
+                img = load_image_from_path_or_url(all_files[idx])
                 buffer = io.BytesIO()
                 img.save(buffer, format='PNG')
                 b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
@@ -458,7 +425,7 @@ async def query_image_text(request: ImageTextQueryRequest):
                     "filename": os.path.basename(all_files[idx])
                 })
             except Exception as img_error:
-                print(f"Error loading image {img_path}: {img_error}")
+                print(f"Error loading image {all_files[idx]}: {img_error}")
 
 
         return {
@@ -577,10 +544,8 @@ async def query_refine_advanced(request: RefineRequest):
         
         results = []
         for idx in final_indices:
-            img_relative_path = all_files[idx]
-            img_path = os.path.join(data_root, img_relative_path)
             try:
-                with Image.open(img_path).convert("RGB") as img:
+                with load_image_from_path_or_url(all_files[idx]) as img:
                     buffer = io.BytesIO()
                     img.save(buffer, format='PNG')
                     img_b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
@@ -590,7 +555,7 @@ async def query_refine_advanced(request: RefineRequest):
                         "filename": all_files[idx]
                     })
             except Exception as img_error:
-                print(f"[Refine] Error loading image {img_path}: {img_error}")
+                print(f"[Refine] Error loading image {all_files[idx]}: {img_error}")
 
 
         print(f"[Refine] Completed with {len(results)} results.")
