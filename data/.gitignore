@@ -1,0 +1,4 @@
+# ignore tất cả file khác trong folder
+*
+# track file .gitignore này
+!.gitignore
