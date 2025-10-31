@@ -24,16 +24,23 @@ Fashion-SegCBIR is an advanced Content-Based Image Retrieval (CBIR) system tailo
 3. **Download vector database from:**: https://drive.google.com/file/d/1Ff32PYdxlN_OUCtCfLb13xljeDm-cL5e/view?usp=sharing
    - put it into folder vector_database
 
+4. **Create .env**:
+   ```
+   OPENAI_API_KEY = ""
+   OPENAI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+   OPENAI_API_MODEL = "gemini-2.5-flash"
+   ```
+
 ## Usage
 
-3. **Start the retrieval system:**  
+5. **Start the retrieval system:**  
     ```bash
     uv run python app.py
     ```
    The FastAPI server will launch the web interface.
-4. **Access the interface:**  
+6. **Access the interface:**  
    Open your browser and go to [http://localhost:8000](http://localhost:8000).
-5. **Query images:**  
+7. **Query images:**  
    Upload a fashion image to retrieve visually similar items from your dataset.
 
 
