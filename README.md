@@ -44,6 +44,12 @@ Fashion-SegCBIR is an advanced Content-Based Image Retrieval (CBIR) system tailo
    Upload a fashion image to retrieve visually similar items from your dataset.
 
 
+## Evaluation
+   ```bash
+   uv run python eval.py
+   ```
+
+
 ## License
 
 This project is licensed under the MIT License. See `LICENSE` for details.
