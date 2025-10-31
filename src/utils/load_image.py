@@ -2,6 +2,7 @@ import requests
 from PIL import Image
 import io
 import os
+from src.utils.config import data_root
 
 def load_image_from_path_or_url(path: str):
     """Load ảnh từ local hoặc URL"""
