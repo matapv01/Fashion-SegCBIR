@@ -1,40 +1,35 @@
-import torch
-import numpy as np
 import os
-import io
 import json
-import base64
-import requests
 import warnings
-from PIL import Image
+import sys
 from datetime import datetime
-from collections import Counter, defaultdict
+from collections import Counter
 from dotenv import load_dotenv
 
 
-from src.utils.load_metadata import load_metadata
 from src.utils.load_models import load_models
-from src.utils.load_image import load_image_from_path_or_url
+from src.utils.FashionAI import FashionAI
+from src.utils.config import *
+from src.node.retrieval import retrieval
+from src.node.rerank import rerank
+from src.node.text_encoder import text_encoder
 
 warnings.filterwarnings("ignore")
 load_dotenv()
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 # GLOBAL VARIABLES
 
-segment_model = None
-siglip_model = None
-reranking_model = None
-llm = None
+segment_model, siglip_model, reranking_model, llm = load_models()
 
-all_vectors = None
-all_files = None
-all_labels = None
 
-data_root = "data"
-topk = 5
+
+fashion_ai = FashionAI()
+all_vectors = fashion_ai.all_vectors
+all_files = fashion_ai.all_files
+all_labels = fashion_ai.all_labels
+
 
 
 
@@ -78,7 +73,7 @@ def save_prediction_record(query, indices, scores, save_path="predictions_all.js
 
 
 def run_query(text_query: str):
-    """Chạy retrieval cho một query text"""
+    """Chạy retrieval + rerank cho một query text, dùng các hàm đã định nghĩa"""
     global siglip_model, reranking_model, all_vectors, all_files, all_labels
 
     if not text_query.strip():
@@ -88,40 +83,30 @@ def run_query(text_query: str):
     print(f"\n🔍 Query: {text_query}")
 
     # 1️⃣ Encode query
-    query_emb = siglip_model.text_encoder(text_query)
-    sims = all_vectors @ query_emb
+    query_emb = text_encoder(siglip_model, text_query)  # node_encode_text
 
-    # 2️⃣ Lấy top N ứng viên ban đầu
-    candidate_count = 50
-    candidate_indices = sims.argsort()[-candidate_count:][::-1]
-    candidates = [all_files[idx] for idx in candidate_indices]
+    # 2️⃣ Retrieval: lấy candidate_indices & similarity
+    candidate_indices, _ = retrieval(all_vectors, query_emb)  # node_retrieval
 
-    # 3️⃣ Rerank
-    rerank_scores = reranking_model.predict(text_query, candidates)
-    reranked = list(zip(rerank_scores, candidate_indices))
-    reranked.sort(key=lambda x: x[0], reverse=True)
-
-    filtered = [(score, idx) for score, idx in reranked]
- 
-
-    final_indices = [idx for score, idx in filtered[:topk]]
-    final_scores = [score for score, idx in filtered[:topk]]
+    # 3️⃣ Rerank: dùng text_query để re-rank top candidates
+    results = rerank(reranking_model, text_query, all_files, all_labels, candidate_indices, eval_mode=True)  # node_rerank eval mode
 
     # 4️⃣ Hiển thị top kết quả
-    print(f"✅ Top {len(final_indices)} results:")
-    for i, (score, idx) in enumerate(zip(final_scores, final_indices)):
-        print(f"  {i+1}. {all_files[idx]} | label={all_labels[idx]} | score={score:.4f}")
+    print(f"✅ Top {len(results)} results:")
+    for i, res in enumerate(results):
+        print(f"  {i+1}. {res['filename']} | label={res['label']}")
 
+    # Trả về danh sách final indices
+    final_indices = [all_files.index(res["filename"]) for res in results]
     return final_indices
+
 
 
 def run_predict():
     """Chạy đánh giá cho tất cả subcategory trong dataset"""
     global segment_model, siglip_model, reranking_model, llm
     global all_vectors, all_files, all_labels, device
-
-    segment_model, siglip_model, reranking_model, llm = load_models(segment_model, siglip_model, reranking_model, llm, device=device)
-    _, all_vectors, all_files, all_labels = load_metadata()
+    
     print("\n🧠 Running queries for all subcategories...")
     unique_labels = sorted(list(set(all_labels)))
     print(f"Found {len(unique_labels)} unique labels:")

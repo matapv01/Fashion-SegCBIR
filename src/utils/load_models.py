@@ -4,8 +4,9 @@ from src.model.open_clip_model import open_clip_model
 from src.model.cross_encoder_model import cross_encoder_model
 from src.model.open_ai_model import open_ai_model
 import os
+from src.utils.config import device
 
-def load_models(segment_model, siglip_model, reranking_model, llm, device="cpu"):
+def load_models():
 
     # Load segmentation model
     print(f"Loading segmentation model...")

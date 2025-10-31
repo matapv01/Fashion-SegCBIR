@@ -43,8 +43,10 @@ FASHION_COLORS = {
     17: [255, 105, 180]  # scarf - hot pink
 }
 
-topk = 5
-threshold = -1.5  # <-- tuỳ chỉnh, ví dụ 0.25 cho cosine similarity hoặc rerank score
+topk = 50 # số lượng kết quả truy xuất ban đầu
+topn = 5 # số lượng kết quả sau khi rerank
+threshold = -1.5  # threshold for rerank score
+
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 data_root = "data"

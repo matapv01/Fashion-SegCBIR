@@ -2,6 +2,8 @@ import os
 import numpy as np
 import pandas as pd
 
+
+
 # Trỏ đến thư mục gốc (ví dụ: fashion-SegCBIR)
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 
@@ -47,3 +49,13 @@ def load_metadata(pkl_path="vector_database/df_with_vectors.pkl"):
     print(f"✅ all_vectors: {all_vectors.shape}, all_files: {len(all_files)}, all_labels: {len(all_labels)}")
     return df, all_vectors, all_files, all_labels
 
+
+class FashionAI:
+    def __init__(self):
+        self.all_vectors = None
+        self.all_files = None
+        self.all_labels = None
+        self.load_metadata()
+
+    def load_metadata(self, pkl_path="vector_database/df_with_vectors.pkl"):
+        _, self.all_vectors, self.all_files, self.all_labels = load_metadata(pkl_path)
