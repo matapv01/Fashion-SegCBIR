@@ -45,8 +45,11 @@ FASHION_COLORS = {
 
 topk = 50 # số lượng kết quả truy xuất ban đầu
 topn = 5 # số lượng kết quả sau khi rerank
-threshold = -1.5  # threshold for rerank score
+threshold = -15  # threshold for rerank score
 
+# trọng số cho embedding
+text_weight = 0.7
+image_weight = 0.3
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 data_root = "data"
