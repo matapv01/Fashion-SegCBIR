@@ -17,7 +17,7 @@ def rerank(reranking_model, query_text: str, all_files: List[str], all_labels: L
         filtered = [(s, idx) for s, idx in reranked if s >= threshold]
         
     final_indices = [idx for _, idx in filtered[:topn]]
-    print(f"""Scores after reranking: {[score for score, _ in filtered[:topn]]}""")
+    # print(f"""Scores after reranking: {[score for score, _ in filtered[:topn]]}""")
 
     results = []
     for idx in final_indices:
