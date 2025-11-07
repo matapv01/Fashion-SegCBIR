@@ -13,3 +13,6 @@ siglip_model/
 
 # bỏ vector_db
 vector_database/df_with_vectors.pkl
+
+# bỏ env
+.env
