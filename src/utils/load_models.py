@@ -10,7 +10,7 @@ def load_models():
 
     # Load segmentation model
     print(f"Loading segmentation model...")
-    segment_model = huggingface_hub_model(repo_id="mattmdjaga/segformer_b2_clothes", local_dir="./segformer_b2_clothes")
+    segment_model = huggingface_hub_model(repo_id="mattmdjaga/segformer_b2_clothes", local_dir="./segformer_b2_clothes", device=device)
     print(f"Segment model ready on {device}")
 
     # Load SigLIP model
@@ -20,7 +20,7 @@ def load_models():
 
     # Load Reranking model
     print("Loading Reranking model...")
-    reranking_model = cross_encoder_model('cross-encoder/ms-marco-MiniLM-L-6-v2')
+    reranking_model = cross_encoder_model('cross-encoder/ms-marco-MiniLM-L-6-v2', device=device)
     # check a quick prediction
     test_scores = reranking_model.predict("test query", ["candidate 1", "candidate 2"])
     print(f"Quick test reranking scores: {test_scores}")
