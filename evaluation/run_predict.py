@@ -7,6 +7,7 @@ from collections import Counter
 from dotenv import load_dotenv
 
 
+
 from src.utils.load_models import load_models
 from src.utils.FashionAI import FashionAI
 from src.utils.config import *
@@ -21,8 +22,7 @@ load_dotenv()
 
 # GLOBAL VARIABLES
 
-segment_model, siglip_model, reranking_model, llm = load_models()
-
+segment_model, siglip_model, reranking_model, llm = load_models(is_reranking_model=False)
 
 
 fashion_ai = FashionAI()
@@ -89,7 +89,7 @@ def run_query(text_query: str):
     candidate_indices, _ = retrieval(all_vectors, query_emb)  # node_retrieval
 
     # 3️⃣ Rerank: dùng text_query để re-rank top candidates
-    results = rerank(reranking_model, text_query, all_files, all_labels, candidate_indices, eval_mode=True)  # node_rerank eval mode
+    results = rerank(reranking_model, text_query, all_files, all_labels, candidate_indices, is_rerank=False, eval_mode=True)  # node_rerank eval mode
 
     # 4️⃣ Hiển thị top kết quả
     print(f"✅ Top {len(results)} results:")

@@ -64,7 +64,7 @@ segment_model, siglip_model, reranking_model, llm = None, None, None, None
 @app.on_event("startup")
 async def startup_event():
     global fashion_ai, segment_model, siglip_model, reranking_model, llm
-    segment_model, siglip_model, reranking_model, llm = load_models()
+    segment_model, siglip_model, reranking_model, llm = load_models(is_reranking_model=False)
     fashion_ai = FashionAI()
 
 
@@ -89,7 +89,7 @@ async def query_text(request: QueryRequest):
     query = rewrite_query(llm, request.text, request.conversation_history)
     emb = text_encoder(siglip_model, query)
     candidate_indices, _ = retrieval(fashion_ai.all_vectors, emb)
-    results = rerank(reranking_model, query, fashion_ai.all_files, fashion_ai.all_labels, candidate_indices)
+    results = rerank(reranking_model, query, fashion_ai.all_files, fashion_ai.all_labels, candidate_indices, is_rerank=False)
     if not results:
             raise HTTPException(status_code=404, detail="Không có ảnh nào liên quan trong database.")
     return {"success": True, "query": query, "base_text": request.text, "results": results, "total_results": len(results)}
@@ -102,7 +102,7 @@ async def query_image_text(request: ImageTextQueryRequest):
     query_emb = text_weight*text_emb + image_weight*img_emb
     query_emb /= np.linalg.norm(query_emb)
     candidate_indices, _ = retrieval(fashion_ai.all_vectors, query_emb)
-    results = rerank(reranking_model, text if text else "[Ảnh]", fashion_ai.all_files, fashion_ai.all_labels, candidate_indices)
+    results = rerank(reranking_model, text if text else "[Ảnh]", fashion_ai.all_files, fashion_ai.all_labels, candidate_indices, is_rerank=False)
     if not results:
             raise HTTPException(status_code=404, detail="Không có ảnh nào liên quan trong database.")
     return {"success": True, "query": f"[Ảnh] + {text}" if text else "[Ảnh]",
@@ -114,11 +114,11 @@ async def query_refine(request: RefineRequest):
         query = refine_query_text(llm, request.base_query, request.feedback_text)
         emb = text_encoder(siglip_model, query)
         candidate_indices, _ = retrieval(fashion_ai.all_vectors, emb)
-        results = rerank(reranking_model, query, fashion_ai.all_files, fashion_ai.all_labels, candidate_indices)
+        results = rerank(reranking_model, query, fashion_ai.all_files, fashion_ai.all_labels, candidate_indices, is_rerank=False)
     elif request.liked_images:
         emb = refine_query_image(siglip_model, request.base_query, request.liked_images)
         candidate_indices, _ = retrieval(fashion_ai.all_vectors, emb)
-        results = rerank(reranking_model, request.base_query, fashion_ai.all_files, fashion_ai.all_labels, candidate_indices)
+        results = rerank(reranking_model, request.base_query, fashion_ai.all_files, fashion_ai.all_labels, candidate_indices, is_rerank=False)
         query = request.base_query
     else:
         raise HTTPException(status_code=400, detail="Provide feedback text or liked images")

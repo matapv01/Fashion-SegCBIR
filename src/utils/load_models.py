@@ -6,7 +6,7 @@ from src.model.open_ai_model import open_ai_model
 import os
 from src.utils.config import device
 
-def load_models():
+def load_models(is_reranking_model: bool = True):
 
     # Load segmentation model
     print(f"Loading segmentation model...")
@@ -18,13 +18,16 @@ def load_models():
     siglip_model = open_clip_model(repo_id="Marqo/marqo-fashionSigLIP", local_dir="./siglip_model", device=device)
     print(f"✅ CLIP model ready on {device}")
 
-    # Load Reranking model
-    print("Loading Reranking model...")
-    reranking_model = cross_encoder_model('cross-encoder/ms-marco-MiniLM-L-6-v2', device=device)
-    # check a quick prediction
-    test_scores = reranking_model.predict("test query", ["candidate 1", "candidate 2"])
-    print(f"Quick test reranking scores: {test_scores}")
-    print("Reranking model loaded.")
+    if is_reranking_model:
+        # Load Reranking model
+        print("Loading Reranking model...")
+        reranking_model = cross_encoder_model('cross-encoder/ms-marco-MiniLM-L-6-v2', device=device)
+        # check a quick prediction
+        test_scores = reranking_model.predict("test query", ["candidate 1", "candidate 2"])
+        print(f"Quick test reranking scores: {test_scores}")
+        print("Reranking model loaded.")
+    else:
+        reranking_model = None
 
     # Load LLM model
     print("Loading LLM model...")

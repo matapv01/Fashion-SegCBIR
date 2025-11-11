@@ -48,8 +48,8 @@ topn = 5 # số lượng kết quả sau khi rerank
 threshold = -15  # threshold for rerank score
 
 # trọng số cho embedding
-text_weight = 0.7
-image_weight = 0.3
+text_weight = 0.5
+image_weight = 0.5
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 data_root = "data"
